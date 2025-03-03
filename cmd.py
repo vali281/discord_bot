@@ -149,6 +149,7 @@ async def handle_commands(message,client):
             "!say <message> - Repeats the message\n"
             "!leaderboard - Displays the top 10 users sorted by points\n"
             "!points - Displays your points, wins, and losses\n"
+            "!msg c<channelid> u<userid> <message> - Sends a message to the specified channel mentioning the user\n"
             "!repli <n>, <message> - Repeats the message n times\n"
             "!bonk <channel_id> <message> - Sends a message to the specified channel\n"
             "!help - Displays this message```"
