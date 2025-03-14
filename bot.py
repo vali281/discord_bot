@@ -11,19 +11,18 @@ intents.members = True
 intents.message_content = True
 intents.guilds = True
 
-# Try to get the token from environment variables
-token = os.getenv('DISCORD_TOKEN')
+import os
+from dotenv import load_dotenv  # Add this import
 
-# If the environment variable is not set, use the Token.txt file
+# Load environment variables from .env file
+load_dotenv()
+
+# Get token from environment variable
+token = os.getenv("TOKEN")
+
 if not token:
-    try:
-        with open('Token.txt', 'r') as file:
-            token = file.read().strip()
-    except FileNotFoundError:
-        print("Error: No token found. Please set DISCORD_TOKEN or provide Token.txt.")
-        exit(1)
-
-
+    print("Error: TOKEN not found in environment variables or .env file.")
+    exit(1)
 #initialize the bot using intents 
 client = discord.Client(intents=intents)
 
