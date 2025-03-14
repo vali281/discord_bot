@@ -1,6 +1,5 @@
 # in bot.py file initializes the bot , reads the token from token.txt file , listens for the message and replies with the 
 # message if it is in the cmd.py
-
 import discord, os # Import the discord.py module
 from cmd import handle_commands # type: ignore # Import commands handler
 from database import add_user, get_user_data # For database interaction
@@ -13,7 +12,7 @@ intents.message_content = True
 intents.guilds = True
 
 # Read the token from token.txt file
-with open('token.txt', 'r') as file:
+with open('Token.txt', 'r') as file:
     token = file.read().strip()
 
 #initialize the bot using intents 

@@ -1,20 +1,79 @@
 import discord
+import random
 from database import add_user, get_user_data, update_score, get_leaderboard
 from game import start_game
 from log import log_command
+from wiki import fetch_wiki_summary
+from fandom_api import fetch_fandom_summary
+from math_commands import handle_math_command
+from forward import set_forward_channel, get_forward_channel
+from purge import purge_messages
 
 prefix = '!'
 
 async def handle_commands(message,client):
-    if not message.content.startswith(prefix):
+        # If the bot is mentioned without a command
+    if client.user in message.mentions and message.content.strip() == f'<@{client.user.id}>':
+        await message.reply(f'Hello! {message.author.mention}')
         return
 
-    command = message.content[len(prefix):].strip().lower()
+    # Ignore messages that don't start with the prefix
+    if not message.content.startswith(prefix):
+        return
 
     # Log the command
     log_command(message.author.id, message.author.name, message.channel.id, message.content)
 
+    # Get the command without the prefix
     command = message.content[len(prefix):].strip().lower()
+
+    if command.startswith('math'):
+        await handle_math_command(message)
+
+    #purge command
+    if command.startswith('purge'):
+        args = command[len('purge'):].strip()
+        await purge_messages(message, args)
+
+    # Set the forward channel for starred messages
+    if command.startswith('setmessage'):
+        args = command[len('setmessage'):].strip().split(' ')
+        if not args or len(args) < 1:
+            await message.channel.send("Please provide a channel ID.")
+        else:
+            channel_id = args[0].strip('<#>')
+            set_forward_channel(message.guild.id, channel_id)
+            await message.channel.send(f"⭐ Starred messages will now be forwarded to <#{channel_id}>.")
+
+    # Star a replied-to message and forward it
+    if command == 'star':
+        if not message.reference:  # Check if user replied to a message
+            await message.channel.send("Reply to a message to star it!")
+        else:
+            channel_id = get_forward_channel(message.guild.id)
+            if not channel_id:
+                await message.channel.send("Please set a channel first using `!setmessage <channel_id>`.")
+                return
+
+            channel = message.guild.get_channel(int(channel_id))
+            if not channel:
+                await message.channel.send("The set channel no longer exists. Please set a new one.")
+                return
+
+            # Get the replied-to message
+            replied_message = await message.channel.fetch_message(message.reference.message_id)
+
+            embed = discord.Embed(
+                description=replied_message.content,
+                color=discord.Color.gold()
+            )
+            embed.set_author(
+                name=f"{replied_message.author.display_name}",
+                icon_url=replied_message.author.avatar.url if replied_message.author.avatar else None
+            )
+
+            await channel.send(f"⭐ **Starred message by {replied_message.author.mention}:**", embed=embed)
+            await message.channel.send("Message has been starred! ✅")
 
     if command == 'hello':
         await message.channel.send('Hello!')
@@ -139,18 +198,60 @@ async def handle_commands(message,client):
                                    "• `!msg c<channelid> <message>`\n"
                                    "• `!msg c<channelid> u<userid>`")
 
+    if command.startswith('pin'):
+        try:
+            await message.pin()
+            await message.reply("📌 Message pinned successfully!", delete_after=60)
+        except discord.Forbidden:
+            await message.reply("I don't have permission to pin messages in this channel.")
+        except discord.HTTPException:
+            await message.reply("Failed to pin the message.")
+
+
+    if command.startswith('roll'):
+        try:
+            _, faces = command.split(' ', 1)
+            faces = int(faces.strip())
+
+            if faces < 1:
+                raise ValueError  # Dice can't have less than 1 face
+
+            result = random.randint(1, faces)
+            await message.reply(f"🎲 You rolled a {faces}-sided dice and got: **{result}**!")
+        
+        except (ValueError, IndexError):
+            await message.reply(f"Please use the proper command: `!roll <number>`")
+
+    command = message.content[len(prefix):].strip()
+
+    if command.startswith('wiki'):
+        parts = command.split(' ', 1)
+        if len(parts) == 2:
+            topic = parts[1].strip()
+            embed = await fetch_wiki_summary(topic)
+            if embed:
+                await message.reply(embed=embed)
+            else:
+                await message.reply(f"{message.author.mention} No results found for '{topic}'.")
+        else:
+            await message.reply(f"{message.author.mention} Please use the proper command: `!wiki <topic>`")
 
     if 'help' in command:
         await message.channel.send(
             "```Commands:\n"
             "!hello - Replies with Hello!\n"
             "!ping - Replies with pong!\n"
-            "!start - Starts the game of Tick tack toe\n"
+            "!start - Starts the game of Tic-tac-toe\n"
             "!say <message> - Repeats the message\n"
             "!leaderboard - Displays the top 10 users sorted by points\n"
             "!points - Displays your points, wins, and losses\n"
             "!msg c<channelid> u<userid> <message> - Sends a message to the specified channel mentioning the user\n"
-            "!repli <n>, <message> - Repeats the message n times\n"
+            "!repli <number>, <message> - Repeats the message input number times\n"
+            "!math <operation> - Performs basic arithmetic operations (e.g., !math 600/160)\n"
             "!bonk <channel_id> <message> - Sends a message to the specified channel\n"
+            "!setmessage <channel_id> <channel_name> - Sets the forward channel for starred messages\n"
+            "!purge <number> - Deletes the specified number of messages in the channel\n"
+            "!star - Stars a replied-to message and forwards it to the set channel\n"
+            "!pin - Pins the message in the channel\n"
             "!help - Displays this message```"
         ) # type: ignore
