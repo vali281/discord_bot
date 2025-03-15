@@ -178,7 +178,7 @@ async def handle_commands(message,client):
                                    "• `!msg c<channelid> <message>`\n"
                                    "• `!msg c<channelid> u<userid>`")
 
-    if command.startswith('pin'):
+    if command == 'pin':
         if message.reference:  # Check if the user replied to a message
             replied_message = await message.channel.fetch_message(message.reference.message_id)
             try:
