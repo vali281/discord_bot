@@ -178,14 +178,18 @@ async def handle_commands(message,client):
                                    "• `!msg c<channelid> <message>`\n"
                                    "• `!msg c<channelid> u<userid>`")
 
-    if command == "pin":  
-        try:
-            await message.pin()
-            await message.reply("📌 Message pinned successfully!", delete_after=60)
-        except discord.Forbidden:
-            await message.reply("I don't have permission to pin messages in this channel.")
-        except discord.HTTPException:
-            await message.reply("Failed to pin the message.")
+    if command.startswith('pin'):
+        if message.reference:  # Check if the user replied to a message
+            replied_message = await message.channel.fetch_message(message.reference.message_id)
+            try:
+                await replied_message.pin()  # Pin the replied-to message
+                await message.reply("📌 Message pinned successfully!", delete_after=60)
+            except discord.Forbidden:
+                await message.reply("I don't have permission to pin messages in this channel.")
+            except discord.HTTPException:
+                await message.reply("Failed to pin the message.")
+        else:
+            await message.reply("Please reply to a message you want to pin.")
 
     if command.startswith('roll'):
         try:
