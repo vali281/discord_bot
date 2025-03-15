@@ -6,7 +6,7 @@ from log import log_command
 from wiki import fetch_wiki_summary
 from fandom_api import fetch_fandom_summary
 from math_commands import handle_math_command
-from forward import set_forward_channel, get_forward_channel
+from forward import star_message
 from purge import purge_messages
 
 prefix = '!'
@@ -42,29 +42,9 @@ async def handle_commands(message,client):
             await message.channel.send("Reply to a message to star it!")
             return
 
-        channel_id = get_forward_channel(message.guild.id)
-        if not channel_id:
-            await message.channel.send("Please set a channel first using `!setmessage <channel_id>`.")
-            return  # Stop execution
+        # Call star_message from forward.py
+        await star_message(message, client)
 
-        channel = message.guild.get_channel(int(channel_id))
-        if not channel:
-            await message.channel.send("The set channel no longer exists. Please set a new one.")
-            return  # Stop execution
-
-        replied_message = await message.channel.fetch_message(message.reference.message_id)
-    
-        embed = discord.Embed(
-            description=replied_message.content,
-            color=discord.Color.gold()
-        )
-        embed.set_author(
-            name=f"{replied_message.author.display_name}",
-            icon_url=replied_message.author.avatar.url if replied_message.author.avatar else None
-        )
-
-        await channel.send(f"⭐ **Starred message by {replied_message.author.mention}:**", embed=embed)
-        await message.channel.send("Message has been starred! ✅")
 
 
     if command == 'hello':
