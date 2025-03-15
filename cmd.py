@@ -92,7 +92,7 @@ async def handle_commands(message, client):
         except (ValueError, IndexError):
             await message.channel.send("❌ Invalid format! Use: `!repli <n>, <message>`")
 
-        elif command.startswith("msg "):
+    elif command.startswith("msg "):
         try:
             msg_command = command[4:].strip()
             channel_id = None
