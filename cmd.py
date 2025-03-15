@@ -31,6 +31,8 @@ async def handle_commands(message, client):
         latency = round(client.latency * 1000)  # Convert to milliseconds
         await message.channel.send(f"Pong! 🏓 `{latency}ms`")
 
+
+
     elif command == "hello":
         await message.channel.send("Hello!")
 
@@ -90,7 +92,46 @@ async def handle_commands(message, client):
         except (ValueError, IndexError):
             await message.channel.send("❌ Invalid format! Use: `!repli <n>, <message>`")
 
-    elif command.startswith("bonk "):
+        elif command.startswith("msg "):
+        try:
+            msg_command = command[4:].strip()
+            channel_id = None
+            user_id = None
+            msg_content = ""
+
+            parts = msg_command.split()
+            for part in parts:
+                if part.startswith('c'):
+                    channel_id = int(part[1:])
+                elif part.startswith('u'):
+                    user_id = int(part[1:])
+                else:
+                    msg_content = " ".join(parts[parts.index(part):])
+                    break
+
+            channel = client.get_channel(channel_id)
+            if channel is None:
+                await message.channel.send("❌ Invalid channel ID!")
+                return
+
+            if user_id:
+                msg_content = f"<@{user_id}> {msg_content}"
+
+            if not msg_content.strip():
+                await message.channel.send("⚠️ Please provide a message to send.")
+                return
+
+            await channel.send(msg_content)
+            await message.channel.send(f"✅ Message sent to <#{channel_id}>!")
+        
+        except (ValueError, IndexError):
+            await message.channel.send("❌ Invalid format! Use one of the following:\n"
+                                       "• `!msg c<channelid> u<userid> <message>`\n"
+                                       "• `!msg c<channelid> <message>`\n"
+                                       "• `!msg c<channelid> u<userid>")
+
+
+    elif command.startswith("bonk"):
         try:
             bonk_command = command[5:].strip()
             channel_id, bonk_message = bonk_command.split(" ", 1)
@@ -151,7 +192,7 @@ async def handle_commands(message, client):
         embed = discord.Embed(title="📜 Bot Commands", description="Here is a list of available commands:", color=discord.Color.blue())
         embed.add_field(name="🔹 General Commands", value="`!hello` - Replies with Hello!\n`!ping` - Shows bot latency.\n`!help` - Displays this help message.", inline=False)
         embed.add_field(name="🎮 Game Commands", value="`!start` - Starts a game of Tic-Tac-Toe.\n`!leaderboard` - Displays top users sorted by points.\n`!points` - Shows your points, wins, and losses.", inline=False)
-        embed.add_field(name="🛠️ Utility Commands", value="`!say <message>` - Repeats your message.\n`!repli <n>, <message>` - Repeats a message n times (max 10).\n`!math <operation>` - Performs basic arithmetic.", inline=False)
+        embed.add_field(name="🛠️ Utility Commands", value="`!say <message>` - Repeats your message.\n`!repli <n>, <message>` - Repeats a message n times (max 10).\n`!math <operation>` - Performs basic arithmetic.\n`!msg c<channelid> u<userid> <message>` - Sends a message to the specified channel mentioning the user.\n`!bonk <channel_id> <message>` - Sends a message to the specified channel", inline=False)
         embed.add_field(name="⭐ Starboard & Moderation", value="`!setmessage <channel_id>` - Sets forward channel for starred messages.\n`!star` - Stars a replied-to message.\n`!pin` - Pins a message.\n`!purge <number>` - Deletes messages.", inline=False)
         embed.set_footer(text="Use these commands wisely!")
         await message.channel.send(embed=embed)
