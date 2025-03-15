@@ -12,6 +12,9 @@ from purge import purge_messages
 prefix = '!'
 
 async def handle_commands(message,client):
+    async def ping_command(message, client):
+        latency = round(client.latency * 1000)  # Convert seconds to milliseconds
+        await message.channel.send(f"Pong! 🏓 `{latency}ms`")
         # If the bot is mentioned without a command
     if client.user in message.mentions and message.content.strip() == f'<@{client.user.id}>':
         await message.reply(f'Hello! {message.author.mention}')
@@ -34,6 +37,10 @@ async def handle_commands(message,client):
     if command.startswith('purge'):
         args = command[len('purge'):].strip()
         await purge_messages(message, args)
+
+    if command == "ping":
+        await ping_command(message, client)
+
 
     if command == 'star':
         print(f"Processing !star command from {message.author}")  # Debugging
@@ -208,22 +215,43 @@ async def handle_commands(message,client):
         else:
             await message.reply(f"{message.author.mention} Please use the proper command: `!wiki <topic>`")
 
-    if 'help' in command:
-        await message.channel.send(
-            "```Commands:\n"
-            "!hello - Replies with Hello!\n"
-            "!ping - Replies with pong!\n"
-            "!start - Starts the game of Tic-tac-toe\n"
-            "!say <message> - Repeats the message\n"
-            "!leaderboard - Displays the top 10 users sorted by points\n"
-            "!points - Displays your points, wins, and losses\n"
-            "!msg c<channelid> u<userid> <message> - Sends a message to the specified channel mentioning the user\n"
-            "!repli <number>, <message> - Repeats the message input number times\n"
-            "!math <operation> - Performs basic arithmetic operations (e.g., !math 600/160)\n"
-            "!bonk <channel_id> <message> - Sends a message to the specified channel\n"
-            "!setmessage <channel_id> <channel_name> - Sets the forward channel for starred messages\n"
-            "!purge <number> - Deletes the specified number of messages in the channel\n"
-            "!star - Stars a replied-to message and forwards it to the set channel\n"
-            "!pin - Pins the message in the channel\n"
-            "!help - Displays this message```"
-        ) # type: ignore
+    async def help_command(message):
+        embed = discord.Embed(
+            title="📜 Bot Commands",
+            description="Here is a list of available commands:",
+            color=discord.Color.blue()
+        )
+
+        embed.add_field(name="🔹 General Commands", value="""
+        `!hello` - Replies with Hello!
+        `!ping` - Shows bot latency.
+        `!help` - Displays this help message.
+        """, inline=False)
+
+        embed.add_field(name="🎮 Game Commands", value="""
+        `!start` - Starts a game of Tic-Tac-Toe.
+        `!leaderboard` - Displays the top 10 users sorted by points.
+        `!points` - Shows your points, wins, and losses.
+        """, inline=False)
+
+        embed.add_field(name="🛠️ Utility Commands", value="""
+        `!say <message>` - Repeats your message.
+        `!msg c<channelid> u<userid> <message>` - Sends a message to a specific channel mentioning a user.
+        `!repli <number>, <message>` - Repeats a message a specified number of times.
+        `!math <operation>` - Performs basic arithmetic (e.g., `!math 600/160`).
+        """, inline=False)
+
+        embed.add_field(name="⭐ Starboard & Moderation", value="""
+        `!setmessage <channel_id>` - Sets the forward channel for starred messages.
+        `!star` - Stars a replied-to message and forwards it to the set channel.
+        `!pin` - Pins a message in the channel.
+        `!purge <number>` - Deletes a specified number of messages.
+        """, inline=False)
+
+        embed.set_footer(text="Use these commands wisely!")
+        
+        await message.channel.send(embed=embed)
+
+    # Modify your command handler in cmd.py:
+    if command == "help":
+        await help_command(message)
