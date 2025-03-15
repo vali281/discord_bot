@@ -23,6 +23,11 @@ async def handle_commands(message,client):
     # Ignore messages that don't start with the prefix
     if not message.content.startswith(prefix):
         return
+    
+    # Ignore bot messages to prevent duplicate replies
+    if message.author.bot:
+        return 
+
 
     # Log the command
     log_command(message.author.id, message.author.name, message.channel.id, message.content)
@@ -177,7 +182,7 @@ async def handle_commands(message,client):
                                    "• `!msg c<channelid> <message>`\n"
                                    "• `!msg c<channelid> u<userid>`")
 
-    if command.startswith('pin'):
+    if command == "pin":  
         try:
             await message.pin()
             await message.reply("📌 Message pinned successfully!", delete_after=60)
@@ -185,7 +190,6 @@ async def handle_commands(message,client):
             await message.reply("I don't have permission to pin messages in this channel.")
         except discord.HTTPException:
             await message.reply("Failed to pin the message.")
-
 
     if command.startswith('roll'):
         try:
