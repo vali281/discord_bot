@@ -35,19 +35,9 @@ async def handle_commands(message,client):
         args = command[len('purge'):].strip()
         await purge_messages(message, args)
 
-    # Set the forward channel for starred messages
-    if command.startswith('setmessage'):
-        args = command[len('setmessage'):].strip().split(' ')
-        if not args or len(args) < 1:
-            await message.channel.send("Please provide a channel ID.")
-        else:
-            channel_id = args[0].strip('<#>')
-            set_forward_channel(message.guild.id, channel_id)
-            await message.channel.send(f"⭐ Starred messages will now be forwarded to <#{channel_id}>.")
-
     # Star a replied-to message and forward it
     if command == 'star':
-        if not message.reference:  # Check if user replied to a message
+        if not message.reference:  # Check if the user replied to a message
             await message.channel.send("Reply to a message to star it!")
         else:
             channel_id = get_forward_channel(message.guild.id)
@@ -63,14 +53,22 @@ async def handle_commands(message,client):
             # Get the replied-to message
             replied_message = await message.channel.fetch_message(message.reference.message_id)
 
+            # Construct Jump to Message URL
+            jump_url = f"https://discord.com/channels/{message.guild.id}/{message.channel.id}/{replied_message.id}"
+
+            # Handle case where message has attachments but no text
+            message_content = replied_message.content if replied_message.content else "[This message contains an attachment]"
+
+            # Create an embed with a Jump to Message button
             embed = discord.Embed(
-                description=replied_message.content,
+                description=message_content,
                 color=discord.Color.gold()
             )
             embed.set_author(
                 name=f"{replied_message.author.display_name}",
                 icon_url=replied_message.author.avatar.url if replied_message.author.avatar else None
             )
+            embed.add_field(name="Jump to Message", value=f"[Click here]({jump_url})", inline=False)
 
             await channel.send(f"⭐ **Starred message by {replied_message.author.mention}:**", embed=embed)
             await message.channel.send("Message has been starred! ✅")
