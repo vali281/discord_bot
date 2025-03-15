@@ -63,10 +63,6 @@ async def handle_commands(message,client):
         await message.channel.send('Hello!')
 
 
-    if command == 'ping':
-        await message.channel.send('pong!')
-
-    
     if command == 'start':
         user_id = message.author.id
         username = str(message.author)
