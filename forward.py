@@ -1,12 +1,16 @@
 import json
 import discord
+from discord.ui import Button, View
 
 FORWARD_FILE = 'forward.txt'
 
 def load_forward_data():
     try:
         with open(FORWARD_FILE, 'r') as file:
-            return json.load(file)
+            content = file.read().strip()
+            if content.isdigit():  # If file contains only a number, convert it
+                return { "default": content }
+            return json.loads(content)  # Try to load JSON if possible
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
@@ -22,6 +26,11 @@ def set_forward_channel(guild_id, channel_id):
 def get_forward_channel(guild_id):
     data = load_forward_data()
     return data.get(str(guild_id))
+
+class JumpToMessageButton(View):
+    def __init__(self, message_link):
+        super().__init__()
+        self.add_item(Button(label="Jump to Message", url=message_link, style=discord.ButtonStyle.link))
 
 async def star_message(message, client):
     if not message.reference:
@@ -42,7 +51,7 @@ async def star_message(message, client):
         return
 
     embed = discord.Embed(
-        description=starred_message.content,
+        description=starred_message.content if starred_message.content else None,
         color=discord.Color.gold(),
         timestamp=starred_message.created_at
     )
@@ -51,18 +60,22 @@ async def star_message(message, client):
         icon_url=starred_message.author.avatar.url if starred_message.author.avatar else None
     )
 
-    # Add image from attachments or embeds
+    # Add first image from attachments if available
     if starred_message.attachments:
-        embed.set_image(url=starred_message.attachments[0].url)
-    elif starred_message.embeds:
-        if starred_message.embeds[0].image:
-            embed.set_image(url=starred_message.embeds[0].image.url)
-        elif starred_message.embeds[0].thumbnail:
-            embed.set_thumbnail(url=starred_message.embeds[0].thumbnail.url)
+        for attachment in starred_message.attachments:
+            if attachment.content_type.startswith("image"):  # Ensuring it's an image
+                embed.set_image(url=attachment.url)
+                break  # Only add the first image
 
-    # Add Jump to Message button
-    view = discord.ui.View()
-    view.add_item(discord.ui.Button(label="Jump to Message", url=starred_message.jump_url, style=discord.ButtonStyle.link))
+    # Copy embeds if they exist
+    for e in starred_message.embeds:
+        new_embed = discord.Embed.from_dict(e.to_dict())  # Copy entire embed
+        await forward_channel.send(embed=new_embed)
 
-    await forward_channel.send(f"⭐ **Starred message by {starred_message.author.mention}:**", embed=embed, view=view)
-    await message.channel.send("Message has been starred! ✅")
+    message_link = f"https://discord.com/channels/{starred_message.guild.id}/{starred_message.channel.id}/{starred_message.id}"
+
+    await forward_channel.send(
+        f"⭐ **Starred message by {starred_message.author.mention}:**",
+        embed=embed,
+        view=JumpToMessageButton(message_link)
+    )

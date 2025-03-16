@@ -6,8 +6,13 @@ from log import log_command
 from wiki import fetch_wiki_summary
 from fandom_api import fetch_fandom_summary
 from math_commands import handle_math_command
-from forward import star_message
+from forward import get_forward_channel , save_forward_data , load_forward_data
 from purge import purge_messages
+from discord.ui import Button, View
+import aiohttp
+import io
+from PIL import Image
+
 
 prefix = '!'
 
@@ -71,6 +76,81 @@ async def handle_commands(message, client):
         else:
             await message.reply("Usage: `!say <message>`")
 
+    elif command.startswith("setmessage"):
+        try:
+            _, channel_id = command.split(" ", 1)
+            data = load_forward_data()
+            data[str(message.guild.id)] = str(channel_id.strip())  # Store in JSON format
+            save_forward_data(data)
+            await message.channel.send(f"✅ Forward channel set to <#{channel_id.strip()}>!")
+        except ValueError:
+            await message.channel.send("❌ Invalid format! Use: `!setmessage <channel_id>`")
+
+    elif command == "star":
+        if not message.reference:
+            await message.channel.send("Reply to a message to star it!")
+        else:
+            channel_id = get_forward_channel(message.guild.id)
+            if not channel_id:
+                await message.channel.send("Please set a channel first using `!setmessage <channel_id>`.")
+                return
+            channel = message.guild.get_channel(int(channel_id))
+            if not channel:
+                await message.channel.send("The set channel no longer exists. Please set a new one.")
+                return
+            replied_message = await message.channel.fetch_message(message.reference.message_id)
+            jump_url = f"https://discord.com/channels/{message.guild.id}/{message.channel.id}/{replied_message.id}"
+
+            # Default color
+            embed_color = discord.Color.gold()
+            image_url = None
+
+            # Check for image attachments
+            if replied_message.attachments:
+                for attachment in replied_message.attachments:
+                    if attachment.content_type and attachment.content_type.startswith("image"):
+                        image_url = attachment.url
+                        # Use the average color of the image
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(image_url) as resp:
+                                    img_data = await resp.read()
+                            img = Image.open(io.BytesIO(img_data))
+                            img = img.convert("RGB")
+                            img = img.resize((1, 1))  # Resize to 1px to get average color
+                            dominant_color = img.getpixel((0, 0))
+                            embed_color = discord.Color.from_rgb(*dominant_color)
+                        except:
+                            pass  # Fall back to default color if error occurs
+                        break
+
+            # Create embed
+            embed = discord.Embed(
+                description=replied_message.content or None,
+                color=embed_color,
+                timestamp=replied_message.created_at
+            )
+            embed.set_author(
+                name=replied_message.author.display_name,
+                icon_url=replied_message.author.avatar.url if replied_message.author.avatar else None
+            )
+
+            # Add image if present
+            if image_url:
+                embed.set_image(url=image_url)
+
+            # Create simple button
+            view = View()
+            view.add_item(Button(label="Jump to Message", url=jump_url, style=discord.ButtonStyle.link))
+
+            # Send to starboard
+            await channel.send(
+                f"⭐ **Starred message by {replied_message.author.mention}:**",
+                embed=embed,
+                view=view
+            )
+            await message.channel.send("Message has been starred! ✅")
+            
     elif command.startswith("repli "):
         try:
             incmd = command[6:].strip()
