@@ -352,10 +352,24 @@ async def handle_commands(message, client):
 
     elif command == "help":
         embed = discord.Embed(title="📜 Bot Commands", description="Here is a list of available commands:", color=discord.Color.blue())
+        
         embed.add_field(name="🔹 General Commands", value="`!hello` - Replies with Hello!\n`!ping` - Shows bot latency.\n`!help` - Displays this help message.", inline=False)
+        
         embed.add_field(name="🎮 Game Commands", value="`!start` - Starts a game of Tic-Tac-Toe.\n`!leaderboard` - Displays top users sorted by points.\n`!points` - Shows your points, wins, and losses.", inline=False)
+        
         embed.add_field(name="🛠️ Utility Commands", value="`!say <message>` - Repeats your message.\n`!repli <n>, <message>` - Repeats a message n times (max 10).\n`!math <operation>` - Performs basic arithmetic.\n`!msg c<channelid> u<userid> <message>` - Sends a message to the specified channel mentioning the user.\n`!bonk <channel_id> <message>` - Sends a message to the specified channel", inline=False)
+        
         embed.add_field(name="⭐ Starboard & Moderation", value="`!setmessage <channel_id>` - Sets forward channel for starred messages.\n`!star` - Stars a replied-to message.\n`!pin` - Pins a message.\n`!purge <number>` - Deletes messages.", inline=False)
+        
+        embed.add_field(name="🌍 Translation Commands", value="`!translate <language>` - Translates a replied message to the specified language.", inline=False)
+        
+        embed.add_field(name="📊 Poll Commands", value="`!poll \"Question\" \"Option1\" \"Option2\"` - Creates an instant poll with reactions (up to 9 options).", inline=False)
+        
+        embed.add_field(name="🎭 Role Commands", value="`!role si \"category\" \"Option1\" \"Option2\"` - Creates a role selection menu where selecting an option removes the previous one.\n"
+                                                       "`!role mul \"category\" \"Option1\" \"Option2\"` - Creates a role selection menu where multiple options can be selected.", inline=False)
+        
         embed.set_footer(text="Use these commands wisely!")
         await message.channel.send(embed=embed)
+
+
  # type: ignore
