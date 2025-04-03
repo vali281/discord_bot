@@ -2,11 +2,10 @@
 # message if it is in the cmd.py
 import discord
 import os
-from discord.ext import commands
-from cmd import handle_commands  # Import your command handler
+from discord.ext import commands  
 from database import add_user, get_user_data  # Import database functions
 from dotenv import load_dotenv  # Load environment variables
-from commands_handler import handle_commands  # Updated import to avoid conflict
+from commands_handler import handle_commands # Import your command handler
 
 
 # Load environment variables from .env file
