@@ -1,0 +1,4 @@
+# Add to your existing .gitignore
+.env
+*.txt    # This will ignore ALL .txt files (including forward.txt and log.txt)
+*.log

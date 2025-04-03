@@ -1,54 +1,61 @@
 # in bot.py file initializes the bot , reads the token from token.txt file , listens for the message and replies with the 
 # message if it is in the cmd.py
-import discord, os # Import the discord.py module
-from cmd import handle_commands # type: ignore # Import commands handler
-from database import add_user, get_user_data # For database interaction
+import discord
+import os
+from discord.ext import commands
+from cmd import handle_commands  # Import your command handler
+from database import add_user, get_user_data  # Import database functions
+from dotenv import load_dotenv  # Load environment variables
+from commands_handler import handle_commands  # Updated import to avoid conflict
 
 
+# Load environment variables from .env file
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+
+if not TOKEN:
+    print("Error: TOKEN not found in environment variables or .env file.")
+    exit(1)
+
+# Initialize bot with command prefix and intents
 intents = discord.Intents.default()
 intents.typing = False
 intents.members = True
 intents.message_content = True
 intents.guilds = True
 
-import os
-from dotenv import load_dotenv  # Add this import
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get token from environment variable
-token = os.getenv("TOKEN")
-
-if not token:
-    print("Error: TOKEN not found in environment variables or .env file.")
-    exit(1)
-#initialize the bot using intents 
-client = discord.Client(intents=intents)
-
-@client.event
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'✅ Logged in as {bot.user}')
+    print("📌 Connected to the following servers:")
+    for guild in bot.guilds:
+        print(f"- {guild.name} (ID: {guild.id})")
+    await bot.change_presence(activity=discord.Streaming(name="Youtube Raikun_vali", url="https://www.youtube.com/c/Raikun_vali"))  # Streaming status
 
-@client.event
+@bot.event
 async def on_guild_join(guild):
     """Sends a welcome message when the bot joins a new server"""
-    system_channel = guild.system_channel  # Gets the default system channel (if available)
+    system_channel = guild.system_channel
     if system_channel is not None:
         await system_channel.send("Hello! Thanks for inviting me! 🎉")
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    user_id = message.author.id
-    username = str(message.author)
-    add_user(user_id, username)
+    """Handles messages and passes them to command handler"""
+    if message.author == bot.user or message.author.bot:
+        return  # Ignore bot messages
 
-    await handle_commands(message, client) # type: ignore
+    if message.content.startswith("!"):  # Only process commands
+        user_id = message.author.id
+        username = str(message.author)
+        add_user(user_id, username)  # Add user to database
+
+        await handle_commands(message, bot)  # Handle command
+    await bot.process_commands(message)  # Process regular commands
 
 try:
-    client.run(token)
+    bot.run(TOKEN)
 except Exception as err:
-    raise err
+    print(f"❌ Error: {err}")
