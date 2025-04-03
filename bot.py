@@ -1,13 +1,11 @@
-# in bot.py file initializes the bot , reads the token from token.txt file , listens for the message and replies with the 
-# message if it is in the cmd.py
+# bot.py - Initializes the bot, reads the token from .env, listens for messages, and processes commands.
 import sys
 import discord
 import os
-from discord.ext import commands  
+from discord.ext import commands
 from database import add_user, get_user_data  # Import database functions
 from dotenv import load_dotenv  # Load environment variables
-from commands_handler import handle_commands # Import your command handler
-
+from commands_handler import handle_commands  # Import your command handler
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,7 +32,10 @@ async def on_ready():
     print("📌 Connected to the following servers:")
     for guild in bot.guilds:
         print(f"- {guild.name} (ID: {guild.id})")
-    await bot.change_presence(activity=discord.Streaming(name="Youtube Raikun_vali", url="https://www.youtube.com/c/Raikun_vali"))  # Streaming status
+    await bot.change_presence(activity=discord.Streaming(
+        name="Youtube Raikun_vali",
+        url="https://www.youtube.com/c/Raikun_vali"
+    ))  # Streaming status
 
 @bot.event
 async def on_guild_join(guild):
@@ -45,20 +46,29 @@ async def on_guild_join(guild):
 
 @bot.event
 async def on_message(message):
-    """Handles messages and passes them to command handler"""
+    """Handles messages and commands"""
     if message.author == bot.user or message.author.bot:
         return  # Ignore bot messages
 
-    if message.content.startswith("!"):  # Only process commands
+    # Process registered commands first
+    await bot.process_commands(message)
+
+    # If the message starts with "!", check custom commands
+    if message.content.startswith("!"):
         user_id = message.author.id
         username = str(message.author)
         add_user(user_id, username)  # Add user to database
 
-        await handle_commands(message, bot)  # Handle command
-        try:
-            await bot.process_commands(message)  # Process regular commands
-        except commands.CommandNotFound:
+        handled = await handle_commands(message, bot)  # Custom command handling
+        if not handled:
             pass  # Ignore unknown commands
+
+@bot.event
+async def on_command_error(ctx, error):
+    """Ignore unknown command errors to prevent spam in logs"""
+    if isinstance(error, commands.CommandNotFound):
+        return  # Suppress 'command not found' errors
+    raise error  # Raise other errors normally
 
 try:
     bot.run(TOKEN)

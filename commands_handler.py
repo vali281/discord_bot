@@ -12,7 +12,9 @@ from discord.ui import Button, View
 import aiohttp
 import io
 from PIL import Image
-
+from translate import translate_text
+from poll import create_poll
+from role import create_role_selection
 
 prefix = '!'
 
@@ -36,7 +38,85 @@ async def handle_commands(message, client):
         latency = round(client.latency * 1000)  # Convert to milliseconds
         await message.channel.send(f"Pong! 🏓 `{latency}ms`")
 
+    if command.startswith('poll'):
+        # Split arguments while handling quoted text properly
+        try:
+            # Use shlex to handle quoted arguments
+            import shlex
+            parts = shlex.split(message.content[len(prefix):])
+            if len(parts) < 3:
+                await message.channel.send("❌ Invalid format! Use: `!poll \"Question\" \"Option1\" \"Option2\" ...`")
+                return
+        
+            question = parts[1]
+            options = parts[2:]
 
+            # Remove empty strings and whitespace-only options
+            options = [o.strip() for o in options if o.strip()]
+
+            await create_poll(message, question, *options)
+    
+        except Exception as e:
+            await message.channel.send(f"❌ Error creating poll: {str(e)}")
+            return   
+        
+    if command.startswith('role'):
+        try:
+            # Split the command into parts
+            import shlex
+            parts = shlex.split(message.content[len(prefix):])
+            if len(parts) < 3:
+                await message.channel.send("❌ Invalid format! Use: `!role <si/mul> \"Category\" \"Option1\" \"Option2\" ...`")
+                return
+
+            # Extract subcommand
+            subcommand = parts[1].lower() if parts[0].lower() == 'role' and len(parts) > 1 else parts[0].lower()
+            if subcommand not in ['si', 'mul']:
+                await message.channel.send("❌ Subcommand must be 'si' (single select) or 'mul' (multiple select)!")
+                return
+
+            # Extract category and options
+            category = parts[2]
+            options = parts[3:]
+
+            # Remove empty strings and whitespace-only options
+            options = [o.strip() for o in options if o.strip()]
+            if not options:
+                await message.channel.send("❌ You need at least 1 option for role selection!")
+                return
+
+            # Call the role selection function
+            single_select = (subcommand == 'si')
+            await create_role_selection(message, category, options, single_select)
+
+        except Exception as e:
+            await message.channel.send(f"❌ Error creating role selection: {str(e)}")
+            return  
+
+    if command.startswith("translate"):
+        parts = message.content.split(" ", 1)
+    
+        if len(parts) < 2:
+            await message.channel.send("Usage: `!translate <language_code> <text>` or reply to a message with `translate <language_code>`.")
+            return
+
+        target_lang = parts[1].split()[0]  # Extract target language
+        text_to_translate = None
+
+        # If the user replied to a message, translate that message
+        if message.reference:
+            replied_message = await message.channel.fetch_message(message.reference.message_id)
+            text_to_translate = replied_message.content
+        else:
+            # Otherwise, translate the text from the command
+            text_to_translate = parts[1][len(target_lang):].strip()
+
+        if not text_to_translate:
+            await message.channel.send("No text found to translate.")
+            return
+
+        translated_text = translate_text(text_to_translate, target_lang)
+        await message.reply(f"**Translated ({target_lang}):** {translated_text}")
 
     elif command == "hello":
         await message.channel.send("Hello!")
@@ -68,6 +148,8 @@ async def handle_commands(message, client):
                 inline=False
             )
         await message.channel.send(embed=embed)
+
+    
 
     elif command.startswith("say "):
         message_content = command[4:].strip()
