@@ -1,5 +1,6 @@
 # in bot.py file initializes the bot , reads the token from token.txt file , listens for the message and replies with the 
 # message if it is in the cmd.py
+import sys
 import discord
 import os
 from discord.ext import commands  
@@ -12,6 +13,8 @@ from commands_handler import handle_commands # Import your command handler
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 if not TOKEN:
     print("Error: TOKEN not found in environment variables or .env file.")
     exit(1)
@@ -23,7 +26,7 @@ intents.members = True
 intents.message_content = True
 intents.guilds = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -52,7 +55,10 @@ async def on_message(message):
         add_user(user_id, username)  # Add user to database
 
         await handle_commands(message, bot)  # Handle command
-    await bot.process_commands(message)  # Process regular commands
+        try:
+            await bot.process_commands(message)  # Process regular commands
+        except commands.CommandNotFound:
+            pass  # Ignore unknown commands
 
 try:
     bot.run(TOKEN)
